@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Compromiso IA · Dragon Trade</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Nunito+Sans:wght@400;600;700&display=swap');
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --blue:#3b5bdb;--blue-l:#e8edff;
+  --green:#2f9e44;--green-l:#ebfbee;
+  --orange:#f76707;--orange-l:#fff3e0;
+  --ink:#1a1a2e;--muted:#6b7280;
+  --bg:#f0f4ff;--card:#fff;
+  --radius:18px;
+}
+html,body{min-height:100%;font-family:'Nunito',sans-serif;background:var(--bg);color:var(--ink);}
+body{padding:0;display:flex;flex-direction:column;align-items:center;}
+
+/* ── HEADER ── */
+.header{width:100%;background:var(--ink);color:white;padding:18px 24px 16px;text-align:center;position:relative;}
+.header h1{font-size:clamp(18px,5vw,26px);font-weight:900;letter-spacing:-.02em;line-height:1.2;}
+.header p{font-size:13px;color:#9ca3af;margin-top:4px;font-family:'Nunito Sans',sans-serif;}
+.header .badge{display:inline-block;background:var(--blue);color:white;font-size:11px;font-weight:700;padding:3px 12px;border-radius:100px;margin-top:8px;letter-spacing:.06em;}
+
+/* ── VIEWS ── */
+.view{width:100%;max-width:520px;padding:24px 20px 48px;display:none;}
+.view.active{display:block;}
+
+/* ── FORM ── */
+.form-card{background:var(--card);border-radius:var(--radius);padding:24px;box-shadow:0 4px 24px rgba(0,0,0,.08);}
+.form-card h2{font-size:18px;font-weight:900;margin-bottom:4px;color:var(--ink);}
+.form-card .sub{font-size:13px;color:var(--muted);font-family:'Nunito Sans',sans-serif;margin-bottom:20px;line-height:1.5;}
+.field{margin-bottom:16px;}
+.field label{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);display:block;margin-bottom:6px;}
+.field input,.field select,.field textarea{
+  width:100%;padding:12px 14px;border:2px solid #e2e8f0;border-radius:12px;
+  font-family:'Nunito Sans',sans-serif;font-size:14px;color:var(--ink);
+  background:white;outline:none;transition:border .15s;
+}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--blue);}
+.field textarea{resize:vertical;min-height:80px;line-height:1.55;}
+.field select{cursor:pointer;}
+
+/* nivel selector */
+.nivel-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:2px;}
+.nivel-opt{
+  border:2px solid #e2e8f0;border-radius:12px;padding:10px 8px;text-align:center;
+  cursor:pointer;transition:all .15s;background:white;
+}
+.nivel-opt:hover{border-color:var(--blue);background:var(--blue-l);}
+.nivel-opt.selected.n1{border-color:var(--green);background:var(--green-l);}
+.nivel-opt.selected.n2{border-color:var(--blue);background:var(--blue-l);}
+.nivel-opt.selected.n3{border-color:var(--orange);background:var(--orange-l);}
+.nivel-opt .ni{font-size:20px;display:block;margin-bottom:4px;}
+.nivel-opt .nl{font-size:11px;font-weight:800;color:var(--ink);}
+.nivel-opt .nd{font-size:10px;color:var(--muted);font-family:'Nunito Sans',sans-serif;margin-top:2px;line-height:1.3;}
+
+/* submit */
+.btn-submit{
+  width:100%;padding:14px;border:none;border-radius:14px;
+  background:var(--blue);color:white;font-family:'Nunito',sans-serif;
+  font-weight:900;font-size:16px;cursor:pointer;margin-top:8px;
+  transition:background .15s,transform .1s;
+}
+.btn-submit:hover{background:#2f4dc4;transform:scale(1.02);}
+.btn-submit:disabled{background:#d1d5db;cursor:not-allowed;transform:none;}
+
+/* ── SUCCESS ── */
+.success-card{background:var(--card);border-radius:var(--radius);padding:32px 24px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,.08);}
+.success-icon{font-size:56px;margin-bottom:12px;}
+.success-card h2{font-size:22px;font-weight:900;color:var(--green);margin-bottom:8px;}
+.success-card p{font-size:14px;color:var(--muted);font-family:'Nunito Sans',sans-serif;line-height:1.6;}
+.success-detail{background:var(--green-l);border:2px solid #b2f2bb;border-radius:12px;padding:14px 16px;margin-top:16px;text-align:left;}
+.success-detail div{font-size:13px;font-family:'Nunito Sans',sans-serif;color:#1d4a30;margin-bottom:4px;line-height:1.5;}
+.success-detail div strong{font-family:'Nunito',sans-serif;}
+.btn-otro{width:100%;padding:12px;border:2px solid var(--blue);border-radius:12px;background:white;color:var(--blue);font-family:'Nunito',sans-serif;font-weight:800;font-size:14px;cursor:pointer;margin-top:16px;}
+
+/* ── PANEL ── */
+.panel-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px;}
+.panel-header h2{font-size:20px;font-weight:900;}
+.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;}
+.stat-box{background:var(--card);border-radius:14px;padding:14px;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,.06);}
+.stat-box .sn{font-size:28px;font-weight:900;color:var(--blue);}
+.stat-box .sl{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-top:2px;}
+.filter-row{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+.filter-btn{padding:6px 14px;border-radius:100px;border:2px solid #e2e8f0;background:white;font-family:'Nunito',sans-serif;font-weight:700;font-size:12px;cursor:pointer;transition:all .15s;}
+.filter-btn.active{background:var(--blue);color:white;border-color:var(--blue);}
+.compromiso-card{background:var(--card);border-radius:14px;padding:16px;margin-bottom:10px;box-shadow:0 2px 12px rgba(0,0,0,.06);border-left:4px solid var(--blue);}
+.compromiso-card.n1{border-left-color:var(--green);}
+.compromiso-card.n2{border-left-color:var(--blue);}
+.compromiso-card.n3{border-left-color:var(--orange);}
+.comp-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px;}
+.comp-name{font-weight:800;font-size:15px;}
+.comp-area{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);}
+.comp-nivel{font-size:11px;font-weight:800;padding:3px 10px;border-radius:100px;}
+.comp-nivel.n1{background:var(--green-l);color:var(--green);}
+.comp-nivel.n2{background:var(--blue-l);color:var(--blue);}
+.comp-nivel.n3{background:var(--orange-l);color:var(--orange);}
+.comp-proceso{font-size:13px;font-family:'Nunito Sans',sans-serif;color:#374151;line-height:1.5;margin-bottom:6px;}
+.comp-meta{display:flex;gap:14px;font-size:12px;font-family:'Nunito Sans',sans-serif;color:var(--muted);}
+.comp-meta span{display:flex;align-items:center;gap:4px;}
+.empty-state{text-align:center;padding:40px 20px;color:var(--muted);}
+.empty-state .ei{font-size:48px;margin-bottom:12px;}
+.empty-state p{font-size:14px;font-family:'Nunito Sans',sans-serif;}
+.btn-export{padding:8px 18px;border-radius:100px;border:2px solid var(--green);background:white;color:var(--green);font-family:'Nunito',sans-serif;font-weight:800;font-size:12px;cursor:pointer;}
+.btn-export:hover{background:var(--green-l);}
+.btn-clear{padding:8px 18px;border-radius:100px;border:2px solid #ffc9c9;background:white;color:#e03131;font-family:'Nunito',sans-serif;font-weight:800;font-size:12px;cursor:pointer;}
+
+/* ── LOGIN ── */
+.login-card{background:var(--card);border-radius:var(--radius);padding:32px 24px;box-shadow:0 4px 24px rgba(0,0,0,.08);text-align:center;}
+.login-card h2{font-size:20px;font-weight:900;margin-bottom:6px;}
+.login-card p{font-size:13px;color:var(--muted);font-family:'Nunito Sans',sans-serif;margin-bottom:20px;}
+.login-error{color:#e03131;font-size:13px;margin-top:8px;font-family:'Nunito Sans',sans-serif;display:none;}
+
+/* ── TAB BAR ── */
+.tab-bar{width:100%;max-width:520px;display:flex;gap:0;background:white;border-radius:100px;padding:4px;margin:16px 20px 0;box-shadow:0 2px 12px rgba(0,0,0,.08);}
+.tab{flex:1;text-align:center;padding:9px 0;border-radius:100px;font-weight:800;font-size:13px;cursor:pointer;transition:all .15s;color:var(--muted);}
+.tab.active{background:var(--blue);color:white;}
+
+/* ── RESPONSIVE ── */
+@media(max-width:400px){.nivel-grid{grid-template-columns:1fr;}.stat-row{grid-template-columns:1fr 1fr;}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🤖 Compromiso IA</h1>
+  <p>Taller de Inteligencia Artificial · Dragon Trade</p>
+  <span class="badge">TALLER INTERNO</span>
+</div>
+
+<div class="tab-bar" id="tabBar">
+  <div class="tab active" onclick="showTab('form')">📋 Mi compromiso</div>
+  <div class="tab" onclick="checkPanel()">📊 Panel líder</div>
+</div>
+
+<!-- ══ VIEW: FORMULARIO ══ -->
+<div class="view active" id="viewForm">
+  <div id="formWrapper">
+    <div class="form-card">
+      <h2>Tu compromiso de área</h2>
+      <p class="sub">Llena este formulario antes de salir del taller. Tu líder y José Antonio lo revisarán en 2 semanas.</p>
+
+      <div class="field">
+        <label>Tu nombre completo</label>
+        <input type="text" id="f_nombre" placeholder="Ej. Ana García" maxlength="60"/>
+      </div>
+
+      <div class="field">
+        <label>Área</label>
+        <select id="f_area">
+          <option value="">— Selecciona tu área —</option>
+          <option>Ventas</option>
+          <option>Almacén / Logística</option>
+          <option>Compras</option>
+          <option>Administración</option>
+          <option>Marketing</option>
+          <option>TI / Sistemas</option>
+          <option>Dirección</option>
+          <option>Otra</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Proceso que vas a probar con IA</label>
+        <textarea id="f_proceso" placeholder="Ej. Redactar el reporte semanal de ventas por zona usando ChatGPT, en lugar de hacerlo manualmente cada lunes." rows="3"></textarea>
+      </div>
+
+      <div class="field">
+        <label>¿Cuánto tiempo te toma hoy?</label>
+        <input type="text" id="f_tiempo" placeholder="Ej. 2 horas cada lunes" maxlength="80"/>
+      </div>
+
+      <div class="field">
+        <label>Herramienta que vas a usar</label>
+        <select id="f_herramienta">
+          <option value="">— Selecciona —</option>
+          <option>ChatGPT</option>
+          <option>Claude</option>
+          <option>Gemini</option>
+          <option>Copilot (Microsoft)</option>
+          <option>n8n / Zapier (automatización)</option>
+          <option>Otra / No sé aún</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Nivel de compromiso</label>
+        <div class="nivel-grid" id="nivelGrid">
+          <div class="nivel-opt n1" onclick="selectNivel(1)">
+            <span class="ni">🌱</span>
+            <span class="nl">Básico</span>
+            <span class="nd">Pruebo 1 proceso esta semana</span>
+          </div>
+          <div class="nivel-opt n2" onclick="selectNivel(2)">
+            <span class="ni">🚀</span>
+            <span class="nl">Intermedio</span>
+            <span class="nd">3 procesos en 30 días</span>
+          </div>
+          <div class="nivel-opt n3" onclick="selectNivel(3)">
+            <span class="ni">⚡</span>
+            <span class="nl">Avanzado</span>
+            <span class="nd">Automatización real en 60 días</span>
+          </div>
+        </div>
+        <input type="hidden" id="f_nivel" value=""/>
+      </div>
+
+      <div class="field">
+        <label>Fecha de primera prueba</label>
+        <input type="date" id="f_fecha"/>
+      </div>
+
+      <div class="field">
+        <label>¿Qué necesitas para lograrlo? (opcional)</label>
+        <input type="text" id="f_necesita" placeholder="Ej. Acceso a ChatGPT Plus, tiempo bloqueado en agenda…" maxlength="200"/>
+      </div>
+
+      <button class="btn-submit" id="btnSubmit" onclick="submitForm()">Registrar mi compromiso ✓</button>
+    </div>
+  </div>
+
+  <!-- success state -->
+  <div id="successWrapper" style="display:none;">
+    <div class="success-card">
+      <div class="success-icon">🎯</div>
+      <h2>¡Compromiso registrado!</h2>
+      <p>Tu compromiso quedó guardado. José Antonio y tu líder de área lo revisarán en 2 semanas.</p>
+      <div class="success-detail" id="successDetail"></div>
+      <button class="btn-otro" onclick="resetForm()">Registrar otro compromiso</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ VIEW: LOGIN PANEL ══ -->
+<div class="view" id="viewLogin">
+  <div class="login-card">
+    <div style="font-size:48px;margin-bottom:12px;">🔐</div>
+    <h2>Panel de líderes</h2>
+    <p>Acceso exclusivo para José Antonio y líderes de área</p>
+    <div class="field" style="text-align:left;">
+      <label>Contraseña</label>
+      <input type="password" id="loginPass" placeholder="Ingresa la contraseña" onkeydown="if(event.key==='Enter')doLogin()"/>
+    </div>
+    <button class="btn-submit" onclick="doLogin()">Entrar al panel</button>
+    <div class="login-error" id="loginError">Contraseña incorrecta</div>
+  </div>
+</div>
+
+<!-- ══ VIEW: PANEL LÍDER ══ -->
+<div class="view" id="viewPanel">
+  <div class="panel-header">
+    <h2>📊 Panel de compromisos</h2>
+    <div style="display:flex;gap:8px;">
+      <button class="btn-export" onclick="exportCSV()">⬇ Exportar CSV</button>
+      <button class="btn-clear" onclick="clearAll()">🗑 Limpiar</button>
+    </div>
+  </div>
+
+  <div class="stat-row" id="statRow">
+    <div class="stat-box"><div class="sn" id="statTotal">0</div><div class="sl">Registros</div></div>
+    <div class="stat-box"><div class="sn" id="statAreas">0</div><div class="sl">Áreas</div></div>
+    <div class="stat-box"><div class="sn" id="statAvanzado">0</div><div class="sl">Nivel ⚡</div></div>
+  </div>
+
+  <div class="filter-row" id="filterRow">
+    <button class="filter-btn active" onclick="setFilter('all',this)">Todos</button>
+    <button class="filter-btn n1" onclick="setFilter('1',this)">🌱 Básico</button>
+    <button class="filter-btn n2" onclick="setFilter('2',this)">🚀 Intermedio</button>
+    <button class="filter-btn n3" onclick="setFilter('3',this)">⚡ Avanzado</button>
+  </div>
+
+  <div id="listaCompromisos"></div>
+</div>
+
+<script>
+// ── CONFIG ──
+const PASS = 'dt2025ia'; // ← cambia esta contraseña
+const KEY  = 'compromisos_ia_dt';
+
+// ── STATE ──
+let nivelSelected = '';
+let filterActive  = 'all';
+
+// ── NIVEL ──
+function selectNivel(n) {
+  nivelSelected = String(n);
+  document.getElementById('f_nivel').value = nivelSelected;
+  document.querySelectorAll('.nivel-opt').forEach((el,i) => {
+    el.classList.toggle('selected', i+1 === n);
+  });
+}
+
+// ── SUBMIT ──
+function submitForm() {
+  const nombre     = document.getElementById('f_nombre').value.trim();
+  const area       = document.getElementById('f_area').value;
+  const proceso    = document.getElementById('f_proceso').value.trim();
+  const tiempo     = document.getElementById('f_tiempo').value.trim();
+  const herramienta= document.getElementById('f_herramienta').value;
+  const nivel      = document.getElementById('f_nivel').value;
+  const fecha      = document.getElementById('f_fecha').value;
+  const necesita   = document.getElementById('f_necesita').value.trim();
+
+  if (!nombre || !area || !proceso || !nivel || !fecha) {
+    alert('Por favor completa: nombre, área, proceso, nivel y fecha.');
+    return;
+  }
+
+  const registro = {
+    id: Date.now(),
+    nombre, area, proceso, tiempo, herramienta, nivel, fecha, necesita,
+    ts: new Date().toLocaleString('es-MX')
+  };
+
+  const data = getAll();
+  data.push(registro);
+  localStorage.setItem(KEY, JSON.stringify(data));
+
+  // show success
+  const nivelLabel = nivel==='1'?'🌱 Básico':nivel==='2'?'🚀 Intermedio':'⚡ Avanzado';
+  document.getElementById('successDetail').innerHTML = `
+    <div><strong>Nombre:</strong> ${nombre}</div>
+    <div><strong>Área:</strong> ${area}</div>
+    <div><strong>Proceso:</strong> ${proceso}</div>
+    <div><strong>Nivel:</strong> ${nivelLabel}</div>
+    <div><strong>Fecha de prueba:</strong> ${fecha}</div>
+  `;
+  document.getElementById('formWrapper').style.display = 'none';
+  document.getElementById('successWrapper').style.display = 'block';
+}
+
+function resetForm() {
+  document.getElementById('f_nombre').value = '';
+  document.getElementById('f_area').value = '';
+  document.getElementById('f_proceso').value = '';
+  document.getElementById('f_tiempo').value = '';
+  document.getElementById('f_herramienta').value = '';
+  document.getElementById('f_nivel').value = '';
+  document.getElementById('f_fecha').value = '';
+  document.getElementById('f_necesita').value = '';
+  nivelSelected = '';
+  document.querySelectorAll('.nivel-opt').forEach(el => el.classList.remove('selected'));
+  document.getElementById('formWrapper').style.display = 'block';
+  document.getElementById('successWrapper').style.display = 'none';
+}
+
+// ── STORAGE ──
+function getAll() {
+  try { return JSON.parse(localStorage.getItem(KEY)) || []; }
+  catch(e) { return []; }
+}
+
+// ── TABS ──
+function showTab(tab) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', i===(tab==='form'?0:1)));
+  if (tab === 'form') {
+    document.getElementById('viewForm').classList.add('active');
+    document.getElementById('viewLogin').classList.remove('active');
+    document.getElementById('viewPanel').classList.remove('active');
+  }
+}
+
+function checkPanel() {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', i===1));
+  document.getElementById('viewForm').classList.remove('active');
+  document.getElementById('viewPanel').classList.remove('active');
+  document.getElementById('viewLogin').classList.add('active');
+}
+
+// ── LOGIN ──
+function doLogin() {
+  const pass = document.getElementById('loginPass').value;
+  if (pass === PASS) {
+    document.getElementById('loginError').style.display = 'none';
+    document.getElementById('viewLogin').classList.remove('active');
+    document.getElementById('viewPanel').classList.add('active');
+    renderPanel();
+  } else {
+    document.getElementById('loginError').style.display = 'block';
+  }
+}
+
+// ── PANEL ──
+function setFilter(f, btn) {
+  filterActive = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderPanel();
+}
+
+function renderPanel() {
+  const data = getAll();
+  const filtered = filterActive === 'all' ? data : data.filter(d => d.nivel === filterActive);
+
+  // stats
+  const areas = new Set(data.map(d => d.area)).size;
+  const avanzados = data.filter(d => d.nivel === '3').length;
+  document.getElementById('statTotal').textContent    = data.length;
+  document.getElementById('statAreas').textContent    = areas;
+  document.getElementById('statAvanzado').textContent = avanzados;
+
+  const lista = document.getElementById('listaCompromisos');
+  if (filtered.length === 0) {
+    lista.innerHTML = `<div class="empty-state"><div class="ei">📭</div><p>Aún no hay compromisos registrados${filterActive!=='all'?' en este nivel':''}.</p></div>`;
+    return;
+  }
+
+  const nivelLabel = n => n==='1'?'🌱 Básico':n==='2'?'🚀 Intermedio':'⚡ Avanzado';
+  const nivelClass = n => n==='1'?'n1':n==='2'?'n2':'n3';
+
+  lista.innerHTML = [...filtered].reverse().map(d => `
+    <div class="compromiso-card ${nivelClass(d.nivel)}">
+      <div class="comp-top">
+        <div>
+          <div class="comp-name">${d.nombre}</div>
+          <div class="comp-area">${d.area}</div>
+        </div>
+        <span class="comp-nivel ${nivelClass(d.nivel)}">${nivelLabel(d.nivel)}</span>
+      </div>
+      <div class="comp-proceso">📌 <strong>Proceso:</strong> ${d.proceso}</div>
+      ${d.tiempo ? `<div class="comp-proceso">⏱ <strong>Tiempo actual:</strong> ${d.tiempo}</div>` : ''}
+      ${d.herramienta ? `<div class="comp-proceso">🔧 <strong>Herramienta:</strong> ${d.herramienta}</div>` : ''}
+      ${d.necesita ? `<div class="comp-proceso">💬 <strong>Necesita:</strong> ${d.necesita}</div>` : ''}
+      <div class="comp-meta">
+        <span>📅 ${d.fecha}</span>
+        <span>🕐 ${d.ts}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── EXPORT ──
+function exportCSV() {
+  const data = getAll();
+  if (!data.length) { alert('No hay registros aún.'); return; }
+  const headers = ['Nombre','Área','Proceso','Tiempo actual','Herramienta','Nivel','Fecha de prueba','Necesita','Registrado'];
+  const nivLabel = n => n==='1'?'Básico':n==='2'?'Intermedio':'Avanzado';
+  const rows = data.map(d => [
+    d.nombre, d.area, d.proceso, d.tiempo||'', d.herramienta||'',
+    nivLabel(d.nivel), d.fecha, d.necesita||'', d.ts
+  ].map(v => `"${String(v).replace(/"/g,'""')}"`).join(','));
+  const csv = [headers.join(','), ...rows].join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8'}));
+  a.download = 'compromisos_ia_taller.csv';
+  a.click();
+}
+
+// ── CLEAR ──
+function clearAll() {
+  if (confirm('¿Borrar todos los compromisos? Esta acción no se puede deshacer.')) {
+    localStorage.removeItem(KEY);
+    renderPanel();
+  }
+}
+
+// ── INIT ──
+document.getElementById('f_fecha').min = new Date().toISOString().split('T')[0];
+</script>
+</body>
+</html>
