@@ -61,10 +61,10 @@ body{display:flex;flex-direction:column;align-items:center;}
 .btn:hover{background:#2f4dc4;transform:scale(1.02);}
 .btn:disabled{background:#d1d5db;cursor:not-allowed;transform:none;}
 .btn.outline{background:white;color:var(--blue);border:2px solid var(--blue);}
-.btn.outline:hover{background:var(--blue-l);transform:scale(1.01);}
-.btn.danger{background:white;color:var(--red);border:2px solid #ffc9c9;font-size:12px;padding:8px;}
-.btn.danger:hover{background:var(--red-l);}
+.btn.outline:hover{background:var(--blue-l);}
 .btn.sm{width:auto;padding:7px 16px;font-size:12px;border-radius:100px;}
+.btn.danger{background:white;color:var(--red);border:2px solid #ffc9c9;font-size:12px;padding:7px 14px;}
+.btn.danger:hover{background:var(--red-l);}
 
 .ok-icon{font-size:52px;text-align:center;display:block;margin-bottom:10px;}
 .ok-detail{background:var(--green-l);border:2px solid #b2f2bb;border-radius:11px;padding:13px 15px;margin-top:14px;}
@@ -105,6 +105,10 @@ body{display:flex;flex-direction:column;align-items:center;}
 .info-bar{background:var(--ink);color:#e2e8f0;border-radius:10px;padding:9px 13px;font-size:12px;font-family:'Nunito Sans',sans-serif;line-height:1.5;margin-top:10px;}
 .loader{text-align:center;padding:32px;color:var(--muted);font-size:14px;}
 .panel-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;}
+.sheet-link{font-size:11px;color:var(--blue);font-family:'Nunito Sans',sans-serif;text-decoration:none;font-weight:700;}
+.sheet-link:hover{text-decoration:underline;}
+.alert{border-radius:11px;padding:11px 14px;font-size:13px;font-family:'Nunito Sans',sans-serif;margin-bottom:12px;line-height:1.5;}
+.alert.err-alert{background:var(--red-l);color:#7a0000;border:1.5px solid #ffc9c9;}
 </style>
 </head>
 <body>
@@ -113,26 +117,36 @@ body{display:flex;flex-direction:column;align-items:center;}
 <script type="text/babel">
 const { useState, useEffect, useCallback } = React;
 
-const PASS = 'dt2025ia';
-const STORAGE_KEY = 'compromisos_ia_dt_v2';
+const PASS       = 'dt2025ia';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzUWZAEmYyVFJem91Njb1rBO15pLh4TZUD8dS-nKchI3F4DoZZUqRXJioSrBjgfNWFa/exec';
+const SHEET_URL  = 'https://docs.google.com/spreadsheets/d/1Za1-mPffyFeVP9DY9urhipxXe5SPHQsFKFHLkGHqy4A/edit';
 
 const nivelInfo = {
-  '1': { label: '🌱 Básico',      badge: 'nb1', card: 'n1', emoji: '🌱' },
-  '2': { label: '🚀 Intermedio',  badge: 'nb2', card: 'n2', emoji: '🚀' },
-  '3': { label: '⚡ Avanzado',    badge: 'nb3', card: 'n3', emoji: '⚡' },
+  'Básico':      { badge:'nb1', card:'n1', label:'🌱 Básico' },
+  'Intermedio':  { badge:'nb2', card:'n2', label:'🚀 Intermedio' },
+  'Avanzado':    { badge:'nb3', card:'n3', label:'⚡ Avanzado' },
 };
 
-async function storageGet(key) {
-  try { return await window.storage.get(key, true); } catch { return null; }
+async function apiPost(data) {
+  const res = await fetch(SCRIPT_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  return res;
 }
-async function storageSet(key, value) {
-  try { return await window.storage.set(key, value, true); } catch { return null; }
+
+async function apiGet() {
+  const res = await fetch(SCRIPT_URL + '?t=' + Date.now());
+  const json = await res.json();
+  return json;
 }
 
 function App() {
-  const [tab, setTab] = useState('form');
+  const [tab, setTab]       = useState('form');
   const [authed, setAuthed] = useState(false);
-  const [pass, setPass] = useState('');
+  const [pass, setPass]     = useState('');
   const [passErr, setPassErr] = useState(false);
 
   return (
@@ -149,12 +163,12 @@ function App() {
       </div>
 
       <div className="wrap">
-        {tab === 'form' && <FormView />}
-        {tab === 'panel' && !authed && (
+        {tab==='form' && <FormView />}
+        {tab==='panel' && !authed && (
           <LoginView pass={pass} setPass={setPass} passErr={passErr}
             onLogin={()=>{ if(pass===PASS){setAuthed(true);setPassErr(false);}else setPassErr(true); }} />
         )}
-        {tab === 'panel' && authed && <PanelView />}
+        {tab==='panel' && authed && <PanelView />}
       </div>
     </>
   );
@@ -162,9 +176,10 @@ function App() {
 
 function FormView() {
   const empty = { nombre:'', area:'', proceso:'', tiempo:'', herramienta:'', nivel:'', fecha:'', necesita:'' };
-  const [form, setForm] = useState(empty);
-  const [done, setDone] = useState(null);
+  const [form, setForm]     = useState(empty);
+  const [done, setDone]     = useState(null);
   const [saving, setSaving] = useState(false);
+  const [saveErr, setSaveErr] = useState('');
 
   const set = (k,v) => setForm(f=>({...f,[k]:v}));
 
@@ -173,13 +188,13 @@ function FormView() {
       alert('Por favor completa: nombre, área, proceso, nivel y fecha.'); return;
     }
     setSaving(true);
-    const reg = { ...form, id: Date.now(), ts: new Date().toLocaleString('es-MX') };
-    let existing = [];
-    const res = await storageGet(STORAGE_KEY);
-    if (res) { try { existing = JSON.parse(res.value); } catch {} }
-    existing.push(reg);
-    await storageSet(STORAGE_KEY, JSON.stringify(existing));
-    setDone(reg);
+    setSaveErr('');
+    try {
+      await apiPost(form);
+      setDone(form);
+    } catch(e) {
+      setSaveErr('No se pudo guardar. Verifica tu conexión e intenta de nuevo.');
+    }
     setSaving(false);
   }
 
@@ -187,26 +202,30 @@ function FormView() {
     <div className="card" style={{textAlign:'center'}}>
       <span className="ok-icon">🎯</span>
       <h2 style={{color:'var(--green)'}}>¡Compromiso registrado!</h2>
-      <p className="sub">Tu compromiso quedó guardado. José Antonio y tu líder de área lo revisarán en 2 semanas.</p>
+      <p className="sub">Quedó guardado en la hoja de Dragon Trade. José Antonio y tu líder lo revisarán en 2 semanas.</p>
       <div className="ok-detail">
         <div><strong>Nombre:</strong> {done.nombre}</div>
         <div><strong>Área:</strong> {done.area}</div>
         <div><strong>Proceso:</strong> {done.proceso}</div>
-        <div><strong>Nivel:</strong> {nivelInfo[done.nivel]?.label}</div>
+        <div><strong>Nivel:</strong> {done.nivel}</div>
         <div><strong>Fecha de prueba:</strong> {done.fecha}</div>
       </div>
-      <button className="btn outline" style={{marginTop:14}} onClick={()=>{setDone(null);setForm(empty);}}>Registrar otro compromiso</button>
+      <button className="btn outline" style={{marginTop:14}}
+        onClick={()=>{setDone(null);setForm(empty);}}>Registrar otro compromiso</button>
     </div>
   );
 
   return (
     <div className="card">
       <h2>Tu compromiso de área</h2>
-      <p className="sub">Llena este formulario antes de salir. Tu líder y José Antonio lo revisarán en 2 semanas.</p>
+      <p className="sub">Llena este formulario antes de salir del taller. Tarda 2 minutos.</p>
+
+      {saveErr && <div className="alert err-alert">⚠️ {saveErr}</div>}
 
       <div className="fld">
         <label>Tu nombre completo</label>
-        <input value={form.nombre} onChange={e=>set('nombre',e.target.value)} placeholder="Ej. Ana García" maxLength={60}/>
+        <input value={form.nombre} onChange={e=>set('nombre',e.target.value)}
+          placeholder="Ej. Ana García" maxLength={60}/>
       </div>
       <div className="fld">
         <label>Área</label>
@@ -224,7 +243,8 @@ function FormView() {
       </div>
       <div className="fld">
         <label>¿Cuánto tiempo te toma hoy?</label>
-        <input value={form.tiempo} onChange={e=>set('tiempo',e.target.value)} placeholder="Ej. 2 horas cada lunes" maxLength={80}/>
+        <input value={form.tiempo} onChange={e=>set('tiempo',e.target.value)}
+          placeholder="Ej. 2 horas cada lunes" maxLength={80}/>
       </div>
       <div className="fld">
         <label>Herramienta que vas a usar</label>
@@ -239,12 +259,12 @@ function FormView() {
         <label>Nivel de compromiso</label>
         <div className="niv-grid">
           {[
-            {v:'1',e:'🌱',l:'Básico',d:'Pruebo 1 proceso esta semana'},
-            {v:'2',e:'🚀',l:'Intermedio',d:'3 procesos en 30 días'},
-            {v:'3',e:'⚡',l:'Avanzado',d:'Automatización real en 60 días'},
+            {v:'Básico',     e:'🌱', l:'Básico',     d:'Pruebo 1 proceso esta semana'},
+            {v:'Intermedio', e:'🚀', l:'Intermedio',  d:'3 procesos en 30 días'},
+            {v:'Avanzado',   e:'⚡', l:'Avanzado',    d:'Automatización real en 60 días'},
           ].map(n=>(
             <div key={n.v}
-              className={`niv-opt ${form.nivel===n.v?'s'+n.v:''}`}
+              className={`niv-opt ${form.nivel===n.v ? 's'+(n.v==='Básico'?'1':n.v==='Intermedio'?'2':'3') : ''}`}
               onClick={()=>set('nivel',n.v)}>
               <span className="ni">{n.e}</span>
               <span className="nl">{n.l}</span>
@@ -261,12 +281,13 @@ function FormView() {
       <div className="fld">
         <label>¿Qué necesitas para lograrlo? (opcional)</label>
         <input value={form.necesita} onChange={e=>set('necesita',e.target.value)}
-          placeholder="Ej. Acceso a ChatGPT Plus, tiempo bloqueado en agenda…" maxLength={200}/>
+          placeholder="Ej. Acceso a ChatGPT Plus, tiempo en agenda…" maxLength={200}/>
       </div>
+
       <button className="btn" onClick={submit} disabled={saving}>
-        {saving ? 'Guardando…' : 'Registrar mi compromiso ✓'}
+        {saving ? '⏳ Guardando en Google Sheets…' : 'Registrar mi compromiso ✓'}
       </button>
-      <div className="info-bar" style={{marginTop:12}}>
+      <div className="info-bar">
         📌 <strong style={{color:'#ffd43b'}}>Revisión en 2 semanas</strong> — José Antonio + líderes de área
       </div>
     </div>
@@ -292,87 +313,88 @@ function LoginView({pass,setPass,passErr,onLogin}) {
 }
 
 function PanelView() {
-  const [data, setData] = useState(null);
+  const [rows, setRows]     = useState(null);
   const [filter, setFilter] = useState('all');
   const [loading, setLoading] = useState(true);
+  const [loadErr, setLoadErr] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
-    const res = await storageGet(STORAGE_KEY);
-    if (res) { try { setData(JSON.parse(res.value)); } catch { setData([]); } }
-    else setData([]);
+    setLoadErr('');
+    try {
+      const json = await apiGet();
+      if (json.ok && json.rows?.length > 1) {
+        // skip header row, map to objects
+        const [headers, ...data] = json.rows;
+        const mapped = data.map(r => ({
+          ts:         r[0], nombre: r[1], area:  r[2],
+          proceso:    r[3], tiempo: r[4], herramienta: r[5],
+          nivel:      r[6], fecha:  r[7], necesita: r[8]
+        }));
+        setRows(mapped);
+      } else {
+        setRows([]);
+      }
+    } catch(e) {
+      setLoadErr('No se pudieron cargar los datos. Verifica la conexión.');
+      setRows([]);
+    }
     setLoading(false);
   }, []);
 
   useEffect(()=>{ load(); }, [load]);
 
-  async function clearAll() {
-    if (!confirm('¿Borrar todos los compromisos? Esta acción no se puede deshacer.')) return;
-    await storageSet(STORAGE_KEY, JSON.stringify([]));
-    setData([]);
-  }
+  if (loading) return <div className="loader">⏳ Cargando desde Google Sheets…</div>;
 
-  function exportCSV() {
-    if (!data?.length) { alert('No hay registros.'); return; }
-    const nivLabel = n => n==='1'?'Básico':n==='2'?'Intermedio':'Avanzado';
-    const headers = ['Nombre','Área','Proceso','Tiempo actual','Herramienta','Nivel','Fecha de prueba','Necesita','Registrado'];
-    const rows = data.map(d=>[d.nombre,d.area,d.proceso,d.tiempo||'',d.herramienta||'',
-      nivLabel(d.nivel),d.fecha,d.necesita||'',d.ts]
-      .map(v=>`"${String(v).replace(/"/g,'""')}"`).join(','));
-    const csv = [headers.join(','),...rows].join('\n');
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'}));
-    a.download = 'compromisos_ia_dt.csv';
-    a.click();
-  }
-
-  if (loading) return <div className="loader">Cargando compromisos…</div>;
-
-  const filtered = filter==='all' ? data : data.filter(d=>d.nivel===filter);
-  const areas = new Set(data.map(d=>d.area)).size;
-  const avanzados = data.filter(d=>d.nivel==='3').length;
+  const filtered = filter==='all' ? (rows||[]) : (rows||[]).filter(d=>d.nivel===filter);
+  const areas    = new Set((rows||[]).map(d=>d.area)).size;
+  const avanzados = (rows||[]).filter(d=>d.nivel==='Avanzado').length;
 
   return (
     <>
       <div className="panel-hdr">
-        <span style={{fontWeight:900,fontSize:17}}>📊 Compromisos registrados</span>
-        <div style={{display:'flex',gap:7}}>
+        <span style={{fontWeight:900,fontSize:17}}>📊 Compromisos</span>
+        <div style={{display:'flex',gap:7,alignItems:'center',flexWrap:'wrap'}}>
+          <a className="sheet-link" href={SHEET_URL} target="_blank">📄 Ver en Sheets</a>
           <button className="btn sm outline" onClick={load}>↺ Actualizar</button>
-          <button className="btn sm outline" onClick={exportCSV}>⬇ CSV</button>
-          <button className="btn danger sm" onClick={clearAll}>🗑</button>
         </div>
       </div>
 
+      {loadErr && <div className="alert err-alert">⚠️ {loadErr}</div>}
+
       <div className="stats">
-        <div className="stat"><div className="sn">{data.length}</div><div className="sl">Registros</div></div>
+        <div className="stat"><div className="sn">{(rows||[]).length}</div><div className="sl">Registros</div></div>
         <div className="stat"><div className="sn">{areas}</div><div className="sl">Áreas</div></div>
         <div className="stat"><div className="sn">{avanzados}</div><div className="sl">Nivel ⚡</div></div>
       </div>
 
       <div className="filters">
-        {[['all','Todos'],['1','🌱 Básico'],['2','🚀 Intermedio'],['3','⚡ Avanzado']].map(([v,l])=>(
+        {[['all','Todos'],['Básico','🌱 Básico'],['Intermedio','🚀 Intermedio'],['Avanzado','⚡ Avanzado']].map(([v,l])=>(
           <button key={v} className={`fbtn ${filter===v?'on':''}`} onClick={()=>setFilter(v)}>{l}</button>
         ))}
       </div>
 
       {filtered.length===0
         ? <div className="empty"><div className="ei">📭</div><p>Aún no hay compromisos{filter!=='all'?' en este nivel':''}.</p></div>
-        : [...filtered].reverse().map(d=>(
-          <div key={d.id} className={`comp-card ${nivelInfo[d.nivel]?.card||''}`}>
-            <div className="comp-top">
-              <div>
-                <div className="comp-name">{d.nombre}</div>
-                <div className="comp-area">{d.area}</div>
+        : [...filtered].reverse().map((d,i)=>{
+            const ni = nivelInfo[d.nivel] || {badge:'nb2',card:'n2',label:d.nivel};
+            return (
+              <div key={i} className={`comp-card ${ni.card}`}>
+                <div className="comp-top">
+                  <div>
+                    <div className="comp-name">{d.nombre}</div>
+                    <div className="comp-area">{d.area}</div>
+                  </div>
+                  <span className={`niv-badge ${ni.badge}`}>{ni.label}</span>
+                </div>
+                <div className="comp-row">📌 <strong>Proceso:</strong> {d.proceso}</div>
+                {d.tiempo     && <div className="comp-row">⏱ <strong>Tiempo actual:</strong> {d.tiempo}</div>}
+                {d.herramienta && <div className="comp-row">🔧 <strong>Herramienta:</strong> {d.herramienta}</div>}
+                {d.necesita   && <div className="comp-row">💬 <strong>Necesita:</strong> {d.necesita}</div>}
+                <div className="comp-meta">📅 {d.fecha} &nbsp;·&nbsp; 🕐 {d.ts}</div>
               </div>
-              <span className={`niv-badge ${nivelInfo[d.nivel]?.badge||''}`}>{nivelInfo[d.nivel]?.label}</span>
-            </div>
-            <div className="comp-row">📌 <strong>Proceso:</strong> {d.proceso}</div>
-            {d.tiempo && <div className="comp-row">⏱ <strong>Tiempo actual:</strong> {d.tiempo}</div>}
-            {d.herramienta && <div className="comp-row">🔧 <strong>Herramienta:</strong> {d.herramienta}</div>}
-            {d.necesita && <div className="comp-row">💬 <strong>Necesita:</strong> {d.necesita}</div>}
-            <div className="comp-meta">📅 {d.fecha} &nbsp;·&nbsp; 🕐 {d.ts}</div>
-          </div>
-        ))
+            );
+          })
       }
     </>
   );
